@@ -1,8 +1,13 @@
-import { Blockchain, SandboxContract, TreasuryContract } from '@ton/sandbox';
-import { Cell, toNano } from '@ton/core';
-import { Sbt } from '../wrappers/Sbt';
-import '@ton/test-utils';
+import {Blockchain, BlockchainSnapshot, SandboxContract, TreasuryContract} from '@ton/sandbox';
+import {Cell, toNano, Address, beginCell} from '@ton/core';
+import {randomAddress} from "../../utils/randomAddress";
+import {SbtItemData, OperationCodes, Queries} from "./SbtItem.data";
+import {SbtItem} from './SbtItem';
+import "@ton/test-utils";
+
 import { compile } from '@ton/blueprint';
+import { decodeOnChainContent, encodeOnChainContent } from "../nft-content/nftContent";
+import { findTransactionRequired, flattenTransaction } from '@ton/test-utils';
 
 describe('Sbt', () => {
     let code: Cell;

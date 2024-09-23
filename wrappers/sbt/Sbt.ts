@@ -1,10 +1,9 @@
-import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode } from '@ton/core';
+import { Address, beginCell, Cell, Contract, contractAddress, 
+    ContractProvider, Sender, SendMode, toNano } from '@ton/core';
+import { buildSbtItemDataCell, buildSingleSbtDataCell, Queries, 
+    SbtItemData, SbtItemDataBase, SbtSingleData } from "./SbtItem.data"
+import { flattenSnakeCell } from '../nft-content/nftContent';
 
-export type SbtConfig = {};
-
-export function sbtConfigToCell(config: SbtConfig): Cell {
-    return beginCell().endCell();
-}
 
 export class Sbt implements Contract {
     constructor(readonly address: Address, readonly init?: { code: Cell; data: Cell }) {}
