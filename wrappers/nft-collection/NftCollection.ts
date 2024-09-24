@@ -58,4 +58,28 @@ export class NftCollection implements Contract {
 
     return res.readAddress();
   }
+
+  async getRoyaltyParams(provider: ContractProvider): Promise<RoyaltyParams> {
+    let res = (await provider.get('get_royalty_params', [])).stack;
+    let [royaltyFactor, royaltyBase, royaltyAddress] = 
+    [res.readNumber(), res.readNumber(), res.readAddress()];
+
+    return {
+      royaltyFactor: royaltyFactor,
+      royaltyBase: royaltyBase,
+      royaltyAddress: royaltyAddress
+    }
+  }
+
+  async getNftContent(provider: ContractProvider, index: number,
+  nftIndividualContent: Cell): Promise<Cell> {
+    let res = (await provider.get('get_nft_content', [
+      {type: 'int', value: BigInt(index)},
+      {type: 'cell', cell: nftIndividualContent}
+    ])).stack;
+
+    return res.readCell();
+  }
+
+
 }
