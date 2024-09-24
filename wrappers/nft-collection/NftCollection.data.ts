@@ -95,5 +95,105 @@ export const Queries = {
       let itemContent = (params.itemContent instanceof Cell) ? params.itemContent :
       beginCell().storeStringTail(params.itemContent).endCell();
       let nftItemMessage = beginCell();
+
+      nftItemMessage.storeAddress(params.itemOwnerAddress);
+      nftItemMessage.storeRef(itemContent);
+      msgBody.storeRef(nftItemMessage);
+
+      return msgBody.endCell();
+    },
+
+  mintSbt: (params: {queryId?: number, passAmount: bigint, itemIndex: number,
+    itemOwnerAddress: Address, itemContent: string | Cell, itemAuthority: Address}) => {
+      let msgBody = beginCell();
+
+      msgBody.storeUint(OperationCodes.Mint, 32);
+      msgBody.storeUint(params.queryId || 0, 64);
+      msgBody.storeUint(params.itemIndex, 64);
+      msgBody.storeCoins(params.passAmount);
+
+      let itemContent = (params.itemContent instanceof Cell) ? params.itemContent :
+      beginCell().storeStringTail(params.itemContent).endCell();
+      let sbtItemMessage = beginCell();
+
+      sbtItemMessage.storeAddress(params.itemOwnerAddress);
+      sbtItemMessage.storeRef(itemContent);
+      sbtItemMessage.storeAddress(params.itemAuthority);
+      msgBody.storeRef(sbtItemMessage);
+
+      return msgBody.endCell();
+    },
+
+    batchMintNft: (params: {queryId?: number, items: CollectionMintNftItemInput[]}) => {
+      if (params.items.length > 250) {
+        throw new Error('Too long list');
+      }
+
+      class CollectionMintNftItemInputDictionaryValue implements DictionaryValue<
+      CollectionMintNftItemInput> {
+        serialize(src: CollectionMintNftItemInput, cell: Builder): void {
+          let nftItemMessage = beginCell();
+          let itemContent = (src.content instanceof Cell) ? src.content :
+          beginCell().storeStringTail(src.content).endCell();
+
+          nftItemMessage.storeAddress(src.ownerAddress);
+          nftItemMessage.storeRef(itemContent);
+          cell.storeCoins(src.passAmount);
+          cell.storeRef(nftItemMessage);
+        }
+
+        parse(cell: Slice):  CollectionMintNftItemInput {
+          const nftItemMessage = cell.loadRef().beginParse();
+          const itemContent = nftItemMessage.loadRef();
+          const ownerAddress = nftItemMessage.loadAddress();
+          const content = itemContent;
+          const passAmount = cell.loadCoins();
+
+          return {
+            index: 0,
+            ownerAddress,
+            content,
+            passAmount
+          };
+        }
+      } 
+
+      let itemsMap = Dictionary.empty<number, CollectionMintNftItemInput>(
+        Dictionary.Keys.Uint(64), new CollectionMintNftItemInputDictionaryValue()
+      );
+
+      for (let item of params.items) {
+        itemsMap.set(item.index, item);
+      }
+
+      let dictCell = beginCell().storeDictDirect(itemsMap).endCell();
+      let msgBody = beginCell();
+
+      msgBody.storeUint(OperationCodes.BatchMint, 32);
+      msgBody.storeUint(params.queryId || 0, 64);
+      msgBody.storeRef(dictCell);
+
+      return msgBody.endCell();
+    },
+
+    batcMintSbt: (params: {queryId?: number, items: CollectionMintSbtItemInput[]}) => {
+      if (params.items.length > 250) {
+        throw new Error('Too long list');
+      }
+
+      class CollectionMintSbtItemInputDictionaryValue implements DictionaryValue<
+      CollectionMintSbtItemInput> {
+        serialize(src: CollectionMintSbtItemInput, cell: Builder): void {
+          let nftItemMessage = beginCell();
+          let itemContent = (src.content instanceof Cell) ? src.content :
+          beginCell().storeStringTail(src.content).endCell();
+
+          nftItemMessage.storeAddress(src.ownerAddress);
+          nftItemMessage.storeRef(itemContent);
+          nftItemMessage.storeAddress(src.authorityAddress);
+          cell.storeCoins(src.passAmount);
+          cell.storeRef(nftItemMessage);
+        }
+      }
     }
 }
