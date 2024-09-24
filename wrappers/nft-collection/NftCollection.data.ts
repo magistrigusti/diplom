@@ -7,42 +7,44 @@ export type RoyaltyParams = {
   royaltyAddress: Address 
 }
 
-export type NFTCollectionData = {
+export type NftCollectionData = {
   ownerAddress: Address,
   nextItemIndex?: number | bigint,
   collectionContent: string | Cell,
   commonContent: string | Cell,
   nftItemCode: Cell,
-  royaltyParams: RoyaltyParams
+  royaltyParams: RoyaltyParams,
 }
 
 export function buildNftCollectionDataCell(data: NftCollectionData) {
-  let dataCell = beginCell();
+  let dataCell = beginCell()
 
   dataCell.storeAddress(data.ownerAddress);
   dataCell.storeUint(data.nextItemIndex || 0, 64);
 
-  let contentCell = beginCell();
-  let collectionContent = (data.collectionContent instanceof Cell) ?
-      data.collectionContent : encodeOffChainContent(data.collectionContent);
-  let commonContent = (data.collectionContent instanceof Cell) ?
-      data.commonContent : beginCell().storeStringTail(data.commonContent).endCell();
-  
-  contentCell.storeRef(collectionContent);
+  let contentCell = beginCell()
+
+  let collectionContent = (data.collectionContent instanceof Cell) ? 
+        data.collectionContent : encodeOffChainContent(data.collectionContent);
+    let commonContent = (data.commonContent instanceof Cell) ? data.commonContent : 
+    beginCell().storeStringTail(data.commonContent).endCell();
+
+  // contentCell.storeRef(collectionContent);
+  contentCell.storeRef(collectionContent instanceof Cell ? collectionContent : beginCell().storeStringTail(collectionContent).endCell());
   contentCell.storeRef(commonContent);
   dataCell.storeRef(contentCell);
   dataCell.storeRef(data.nftItemCode);
 
-  let royaltyCell = beginCell();
+  let royaltyCell = beginCell()
   royaltyCell.storeUint(data.royaltyParams.royaltyFactor, 16);
   royaltyCell.storeUint(data.royaltyParams.royaltyBase, 16);
   royaltyCell.storeAddress(data.royaltyParams.royaltyAddress);
-  dataCell.storeRef(royaltyCell);
+  dataCell.storeRef(royaltyCell)
 
   return dataCell.endCell();
 }
 
-export function buildNftCollectionStateInit(conf: NFTCollectionData, code: Cell) {
+export function buildNftCollectionStateInit(conf: NftCollectionData, code: Cell) {
   let dataCell = buildNftCollectionDataCell(conf);
   let stateInit = {
     code: code,
@@ -194,6 +196,88 @@ export const Queries = {
           cell.storeCoins(src.passAmount);
           cell.storeRef(nftItemMessage);
         }
+
+        parse(cell: Slice): CollectionMintSbtItemInput {
+          const nftItemMessage = cell.loadRef().beginParse();
+          const itemContent = nftItemMessage.loadRef();
+          const ownerAddress = nftItemMessage.loadAddress();
+          const authorityAddress = nftItemMessage.loadAddress();
+          const content = itemContent;
+          const passAmount = cell.loadCoins();
+
+          return {
+              index: 0,
+              ownerAddress,
+              content,
+              passAmount,
+              authorityAddress
+          };
+        }
       }
+
+      let itemsMap = Dictionary.empty<number, CollectionMintNftItemInput>(
+        Dictionary.Keys.Uint(64), new CollectionMintSbtItemInputDictionaryValue()
+      );
+
+      for (let item of params.items) {
+        itemsMap.set(item.index, item);
+      }
+
+      let dictCell = beginCell().storeDictDirect(itemsMap).endCell();
+      let msgBody = beginCell();
+
+      msgBody.storeUint(OperationCodes.BatchMint, 32);
+      msgBody.storeUint(params.queryId || 0, 64);
+      msgBody.storeRef(dictCell);
+
+      return msgBody.endCell();
+    },
+
+    changeOwner: (params: {queryId?: number, newOwner: Address}) => {
+      let msgBody = beginCell();
+
+      msgBody.storeUint(OperationCodes.ChangeOwner, 32);
+      msgBody.storeUint(params.queryId || 0, 64);
+      msgBody.storeAddress(params.newOwner);
+
+      return msgBody.endCell();
+    },
+
+    getRoyaltyParams: (params: {queryId?: number}) => {
+      let msgBody = beginCell();
+
+      msgBody.storeUint(OperationCodes.GetRoyaltyParams, 32);
+      msgBody.storeUint(params.queryId || 0, 64);
+
+      return msgBody.endCell();
+    },
+
+    editContent: (params: {queryId?: number, collectionContent: string | Cell,
+    commonContent: string | Cell, royaltyParams: RoyaltyParams}) => {
+      let msgBody = beginCell();
+
+      msgBody.storeUint(OperationCodes.EditContent, 32);
+      msgBody.storeUint(params.queryId || 0, 64);
+
+      let royaltyCell = beginCell();
+
+      royaltyCell.storeUint(params.royaltyParams.royaltyFactor, 16);
+      royaltyCell.storeUint(params.royaltyParams.royaltyBase, 16);
+      royaltyCell.storeAddress(params.royaltyParams.royaltyAddress);
+
+      let contentCell = beginCell();
+      let collectionContent = (params.collectionContent instanceof Cell) ?
+      params.collectionContent : beginCell().storeStringTail(params.collectionContent).endCell();
+      let commonContent = (params.commonContent instanceof Cell) ?
+      params.commonContent : beginCell().storeStringTail(params.commonContent).endCell();
+
+
+      contentCell.storeRef(collectionContent);
+      contentCell.storeRef(commonContent);
+
+      msgBody.storeRef(contentCell);
+      msgBody.storeRef(royaltyCell);
+
+      return msgBody.endCell();
     }
 }
