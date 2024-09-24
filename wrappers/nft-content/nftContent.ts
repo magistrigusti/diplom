@@ -135,7 +135,7 @@ let g_supportedKeys = addKeysHashesToTheMap(new Map(), [
   "decimals", "content_url", "attributes", "amount_style", 
   "render_type", "currency", "game"]);
 
-export function decodeOnChainContent(
+export function decodeOffChainContent(
   content: Cell, additionalSupportedFields?: string[]
 ): {[key: string]: string | Buffer} {
   let res: {[key: string]: string | Buffer} = {};
