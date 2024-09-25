@@ -81,5 +81,60 @@ export class NftCollection implements Contract {
     return res.readCell();
   }
 
+  async getNftContentStr(provider: ContractProvider, index: number,
+    nftIndividualContent: Cell | string): Promise<string> {
+   let res = await this.getNftContent(provider, index, 
+   (typeof nftIndividualContent === 'string') ? 
+   encodeOffChainContent(nftIndividualContent) : nftIndividualContent);
+   let contentCell = res.beginParse();
+   if(contentCell.remainingBits < 8 || contentCell.preloadUint(8) != 1) {
+       throw new Error('Content is not a string');
+   }
 
+   return decodeOffChainContent(res);
+  }
+
+  // internal 
+
+  async sendDeployNewNft(provider: ContractProvider, via: Sender, value: bigint, 
+    params: {queryId?: number, passAmount: bigint, itemIndex: number,
+    itemOwnerAddress: Address, itemContent: string | Cell}) {
+      let msgBody = Queries.mintNft(params);
+
+      return await provider.internal(via, {
+        value: value,
+        body: msgBody
+      });
+  }
+
+  async sendDeployNewSbt(provider: ContractProvider, via: Sender, value: bigint, 
+    params: { queryId?: number, passAmount: bigint, itemIndex: number, 
+        itemOwnerAddress: Address, itemContent: string | Cell, itemAuthority: Address }) {
+        let msgBody = Queries.mintSbt(params)
+
+        return await provider.internal(via, {
+            value: value,
+            body: msgBody
+        })
+  }
+
+  async sendBatchDeployNft(provider: ContractProvider, via: Sender, value: bigint,
+    params: {queryId?: number, items: CollectionMintNftItemInput[]}) {
+      let msgBody = Queries.batchMintNft(params);
+
+      return await provider.internal(via, {
+        value: value,
+        body: msgBody
+      })
+  }
+
+  async sendBatchDeploySbt(provider: ContractProvider, via: Sender, value: bigint, 
+    params: { queryId?: number, items: CollectionMintSbtItemInput[] }) {
+        let msgBody = Queries.batchMintSbt(params)
+
+        return await provider.internal(via, {
+            value: value,
+            body: msgBody
+        })
+  }
 }

@@ -178,7 +178,7 @@ export const Queries = {
       return msgBody.endCell();
     },
 
-    batcMintSbt: (params: {queryId?: number, items: CollectionMintSbtItemInput[]}) => {
+    batchMintSbt: (params: {queryId?: number, items: CollectionMintSbtItemInput[]}) => {
       if (params.items.length > 250) {
         throw new Error('Too long list');
       }
