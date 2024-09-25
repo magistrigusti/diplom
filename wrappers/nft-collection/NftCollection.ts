@@ -137,4 +137,33 @@ export class NftCollection implements Contract {
             body: msgBody
         })
   }
+
+  async sendChangeOwner(provider: ContractProvider, via: Sender, newOwner: Address) {
+    let msgBody = Queries.changeOwner({ newOwner });
+
+    return await provider.internal(via, {
+      value: this.fees.sendChangeOwnerFee || this.fees.defaultFee,
+      body: msgBody
+    });
+  }
+
+  async sendGetRoyaltyParams(provider: ContractProvider, via: Sender) {
+    let msgBody = Queries.getRoyaltyParams({});
+
+    return await provider.internal(via, {
+      value: this.fees.sendGetRoyaltyParamsFee || this.fees.defaultFee,
+      body: msgBody
+    });
+  }
+
+  async sendEditContent(provider: ContractProvider, via: Sender, params:
+    {queryId?: number, collectionContent: string | Cell, 
+    commonContent: string | Cell, royaltyParams: RoyaltyParams}) {
+      let msgBody = Queries.editContent(params);
+
+      return await provider.internal(via, {
+        value: this.fees.sendEditContentFee || this.fees.defaultFee,
+        body: msgBody
+      });
+    }
 }
